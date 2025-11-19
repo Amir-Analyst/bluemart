@@ -1,8 +1,6 @@
-st.markdown("""
 <div align="center">
-    <img src="assets/logo.png" width="180">
+    <img src="assets/logo.png" width="300">
 </div>
-""", unsafe_allow_html=True)
 
 # BlueMart Retail LLC — 2025 Analytics Project Story
 
