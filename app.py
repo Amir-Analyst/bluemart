@@ -175,28 +175,91 @@ st.subheader("🏬 Top 10 Stores by Revenue")
 st.dataframe(top_stores, use_container_width=True)
 
 # -------------------------------
-# 7️⃣ Revenue by Category
+# 7️⃣ Revenue by Category (Horizontal Bar)
 # -------------------------------
-rev_category = df_filtered.groupby('category').agg(revenue=('revenue','sum')).reset_index()
+rev_category = df_filtered.groupby('category').agg(revenue=('revenue','sum')).reset_index().sort_values('revenue', ascending=True)
 fig_category = px.bar(
-    rev_category, x='category', y='revenue',
+    rev_category, y='category', x='revenue', orientation='h',
     text='revenue', labels={'revenue':'Revenue (AED)', 'category':'Category'},
-    title="Revenue by Category", color='revenue', color_continuous_scale=[COLOR_SOFT, COLOR_PRIMARY]
+    title="📊 Revenue by Product Category", color='revenue', color_continuous_scale=[COLOR_SOFT, COLOR_PRIMARY]
 )
 fig_category.update_traces(texttemplate="AED %{text:.2s}", textposition='outside')
+fig_category.update_layout(showlegend=False, height=400)
 st.plotly_chart(fig_category, use_container_width=True)
 
 # -------------------------------
-# 8️⃣ Revenue by Channel
+# 8️⃣ Revenue by Channel (Pie Chart)
 # -------------------------------
-rev_channel = df_filtered.groupby('channel').agg(revenue=('revenue','sum')).reset_index()
-fig_channel = px.pie(rev_channel, names='channel', values='revenue', title="Revenue by Channel",
-                     color_discrete_sequence=[COLOR_PRIMARY, COLOR_ACCENT, COLOR_SOFT])
-st.plotly_chart(fig_channel, use_container_width=True)
+st.subheader("📱 Channel Performance Analysis")
+col_ch1, col_ch2 = st.columns(2)
+
+with col_ch1:
+    rev_channel = df_filtered.groupby('channel').agg(revenue=('revenue','sum')).reset_index()
+    fig_channel = px.pie(rev_channel, names='channel', values='revenue', title="Revenue Distribution by Channel",
+                         color_discrete_sequence=px.colors.sequential.Teal, hole=0.4)
+    fig_channel.update_traces(textposition='inside', textinfo='percent+label')
+    st.plotly_chart(fig_channel, use_container_width=True)
+
+with col_ch2:
+    # Channel revenue table with percentages
+    rev_channel['percentage'] = (rev_channel['revenue'] / rev_channel['revenue'].sum() * 100).round(1)
+    rev_channel['revenue_formatted'] = rev_channel['revenue'].apply(lambda x: f"AED {human_format(x)}")
+    rev_channel['percentage_formatted'] = rev_channel['percentage'].apply(lambda x: f"{x}%")
+    rev_channel_display = rev_channel[['channel', 'revenue_formatted', 'percentage_formatted']].sort_values('percentage_formatted', ascending=False)
+    rev_channel_display.columns = ['Channel', 'Revenue', 'Share']
+    st.markdown("#### Channel Revenue Breakdown")
+    st.dataframe(rev_channel_display, use_container_width=True, hide_index=True)
 
 # -------------------------------
-# 9️⃣ Monthly Revenue & Profit Trend
+# 9️⃣ Gross Margin by Category
 # -------------------------------
+st.subheader("💰 Profitability Analysis - Margin by Category")
+margin_category = df_filtered.groupby('category').agg(revenue=('revenue','sum'), profit=('profit','sum')).reset_index()
+margin_category['margin_pct'] = (margin_category['profit'] / margin_category['revenue'] * 100).round(2)
+margin_category = margin_category.sort_values('margin_pct', ascending=True)
+
+# Color code based on margin health
+def margin_color(margin):
+    if margin >= 35:
+        return '#28a745'  # Green - Excellent
+    elif margin >= 30:
+        return '#ffc107'  # Yellow - Good
+    else:
+        return '#fd7e14'  # Orange - Moderate
+
+margin_category['color'] = margin_category['margin_pct'].apply(margin_color)
+
+fig_margin = go.Figure(go.Bar(
+    y=margin_category['category'],
+    x=margin_category['margin_pct'],
+    orientation='h',
+    marker=dict(color=margin_category['color']),
+    text=margin_category['margin_pct'].apply(lambda x: f"{x:.1f}%"),
+    textposition='outside'
+))
+fig_margin.update_layout(
+    title='Gross Margin % by Category',
+    xaxis_title='Gross Margin (%)',
+    yaxis_title='Category',
+    showlegend=False,
+    height=400,
+    xaxis=dict(range=[0, max(margin_category['margin_pct']) + 5])
+)
+st.plotly_chart(fig_margin, use_container_width=True)
+
+# Margin legend
+st.markdown("""
+<div style='display: flex; gap: 20px; font-size: 12px; margin-top: -10px;'>
+    <span>🟢 Excellent (≥35%)</span>
+    <span>🟡 Good (30-35%)</span>
+    <span>🟠 Moderate (<30%)</span>
+</div>
+""", unsafe_allow_html=True)
+
+# -------------------------------
+# 🔟 Monthly Revenue & Profit Trend with Promotions
+# -------------------------------
+st.subheader("📈 Monthly Revenue & Profit Trends")
 monthly_trend = df_filtered.groupby('month').agg(revenue=('revenue','sum'), profit=('profit','sum')).reset_index()
 # Sort months correctly
 month_order = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
@@ -204,28 +267,195 @@ monthly_trend['month'] = pd.Categorical(monthly_trend['month'], categories=month
 monthly_trend = monthly_trend.sort_values('month')
 
 fig_monthly = go.Figure()
-fig_monthly.add_trace(go.Bar(x=monthly_trend['month'], y=monthly_trend['revenue'],
-                             name='Revenue', marker_color=COLOR_PRIMARY, text=monthly_trend['revenue'].apply(lambda x: f"AED {human_format(x)}")))
-fig_monthly.add_trace(go.Bar(x=monthly_trend['month'], y=monthly_trend['profit'],
-                             name='Profit', marker_color=COLOR_ACCENT, text=monthly_trend['profit'].apply(lambda x: f"AED {human_format(x)}")))
+fig_monthly.add_trace(go.Scatter(
+    x=monthly_trend['month'], 
+    y=monthly_trend['revenue'],
+    name='Revenue', 
+    mode='lines+markers',
+    line=dict(color=COLOR_PRIMARY, width=3),
+    marker=dict(size=8),
+    text=monthly_trend['revenue'].apply(lambda x: f"AED {human_format(x)}"),
+    hovertemplate='%{text}<extra></extra>'
+))
+fig_monthly.add_trace(go.Scatter(
+    x=monthly_trend['month'], 
+    y=monthly_trend['profit'],
+    name='Profit', 
+    mode='lines+markers',
+    line=dict(color=COLOR_ACCENT, width=3),
+    marker=dict(size=8),
+    text=monthly_trend['profit'].apply(lambda x: f"AED {human_format(x)}"),
+    hovertemplate='%{text}<extra></extra>'
+))
+
+# Add promotional period annotations
+promo_periods = [
+    {'month': 'April', 'name': 'Ramadan Sale', 'color': 'rgba(255, 99, 132, 0.1)'},
+    {'month': 'July', 'name': 'Summer Sale', 'color': 'rgba(54, 162, 235, 0.1)'},
+    {'month': 'November', 'name': 'Black Friday', 'color': 'rgba(255, 206, 86, 0.1)'}
+]
+
+for promo in promo_periods:
+    if promo['month'] in monthly_trend['month'].values:
+        idx = list(monthly_trend['month']).index(promo['month'])
+        fig_monthly.add_vrect(
+            x0=idx-0.3, x1=idx+0.3,
+            fillcolor=promo['color'],
+            layer="below", line_width=0,
+            annotation_text=promo['name'],
+            annotation_position="top"
+        )
+
 fig_monthly.update_layout(
-    barmode='group',
-    title='Monthly Revenue & Profit Trend',
+    title='Monthly Revenue & Profit Trend (with Promotional Periods)',
     xaxis_title='Month',
     yaxis_title='Amount (AED)',
     yaxis_tickprefix="AED ",
     yaxis_tickformat=",",
-    legend_title_text='Metric',
-    plot_bgcolor=COLOR_BG
+    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+    plot_bgcolor=COLOR_BG,
+    hovermode='x unified',
+    height=450
 )
 st.plotly_chart(fig_monthly, use_container_width=True)
 
 # -------------------------------
-# 10️⃣ Footer / Export
+# 1️⃣1️⃣ Store Performance Analysis
+# -------------------------------
+st.subheader("🏬 Store Performance Analysis")
+
+# Load store master to get city information
+try:
+    stores_df = pd.read_csv(config.FILE_STORES)
+    
+    # Merge with performance data
+    store_perf = df_filtered.groupby(['store_id', 'store_name']).agg(
+        revenue=('revenue', 'sum'),
+        profit=('profit', 'sum')
+    ).reset_index()
+    
+    store_perf = store_perf.merge(stores_df[['store_id', 'city', 'store_type']], on='store_id', how='left')
+    
+    col_st1, col_st2 = st.columns(2)
+    
+    with col_st1:
+        # City performance
+        city_perf = store_perf.groupby('city').agg(
+            revenue=('revenue', 'sum'),
+            stores=('store_id', 'count')
+        ).reset_index()
+        city_perf['avg_per_store'] = city_perf['revenue'] / city_perf['stores']
+        city_perf = city_perf.sort_values('revenue', ascending=False)
+        
+        fig_city = px.bar(
+            city_perf, x='city', y='revenue',
+            title='Revenue by City',
+            labels={'revenue': 'Total Revenue (AED)', 'city': 'City'},
+            color='revenue',
+            color_continuous_scale=[COLOR_SOFT, COLOR_PRIMARY],
+            text='revenue'
+        )
+        fig_city.update_traces(texttemplate="AED %{text:.2s}", textposition='outside')
+        fig_city.update_layout(showlegend=False)
+        st.plotly_chart(fig_city, use_container_width=True)
+    
+    with col_st2:
+        # Store type performance
+        type_perf = store_perf.groupby('store_type').agg(
+            revenue=('revenue', 'sum'),
+            stores=('store_id', 'count')
+        ).reset_index()
+        
+        fig_type = px.pie(
+            type_perf, names='store_type', values='revenue',
+            title='Revenue by Store Type',
+            color_discrete_sequence=px.colors.sequential.Teal,
+            hole=0.4
+        )
+        fig_type.update_traces(textposition='inside', textinfo='percent+label')
+        st.plotly_chart(fig_type, use_container_width=True)
+    
+    # Top performing stores table
+    st.markdown("#### Top 10 Performing Stores")
+    top_stores_display = store_perf.nlargest(10, 'revenue')[['store_name', 'city', 'store_type', 'revenue', 'profit']]
+    top_stores_display['revenue'] = top_stores_display['revenue'].apply(lambda x: f"AED {human_format(x)}")
+    top_stores_display['profit'] = top_stores_display['profit'].apply(lambda x: f"AED {human_format(x)}")
+    top_stores_display.columns = ['Store', 'City', 'Type', 'Revenue', 'Profit']
+    st.dataframe(top_stores_display, use_container_width=True, hide_index=True)
+    
+except FileNotFoundError:
+    st.warning("Store master data not found. Showing basic store performance.")
+    top_stores = (
+        df_filtered.groupby(['store_id', 'store_name'])
+        .agg(revenue=('revenue', 'sum'), profit=('profit', 'sum'))
+        .sort_values('revenue', ascending=False)
+        .head(10)
+        .reset_index()
+    )
+    top_stores['revenue'] = top_stores['revenue'].map("AED {:,.2f}".format)
+    top_stores['profit'] = top_stores['profit'].map("AED {:,.2f}".format)
+    st.dataframe(top_stores, use_container_width=True)
+
+# -------------------------------
+# 1️⃣2️⃣ Customer Loyalty Segments (if customer data available)
+# -------------------------------
+st.subheader("👥 Customer Insights")
+
+try:
+    customers_df = pd.read_csv(config.FILE_CUSTOMERS)
+    
+    col_cust1, col_cust2 = st.columns(2)
+    
+    with col_cust1:
+        # Loyalty segment distribution
+        loyalty_dist = customers_df['loyalty_segment'].value_counts().reset_index()
+        loyalty_dist.columns = ['segment', 'count']
+        loyalty_dist['percentage'] = (loyalty_dist['count'] / loyalty_dist['count'].sum() * 100).round(1)
+        
+        # Define colors for tiers
+        tier_colors = {'Platinum': '#E5E4E2', 'Gold': '#FFD700', 'Silver': '#C0C0C0'}
+        loyalty_dist['color'] = loyalty_dist['segment'].map(tier_colors)
+        
+        fig_loyalty = px.pie(
+            loyalty_dist, names='segment', values='count',
+            title='Customer Distribution by Loyalty Tier',
+            color='segment',
+            color_discrete_map=tier_colors,
+            hole=0.4
+        )
+        fig_loyalty.update_traces(textposition='inside', textinfo='percent+label')
+        st.plotly_chart(fig_loyalty, use_container_width=True)
+    
+    with col_cust2:
+        # Loyalty tier breakdown table
+        loyalty_display = loyalty_dist[['segment', 'count', 'percentage']].copy()
+        loyalty_display['percentage'] = loyalty_display['percentage'].apply(lambda x: f"{x}%")
+        loyalty_display.columns = ['Loyalty Tier', 'Customers', 'Share']
+        st.markdown("#### Loyalty Tier Breakdown")
+        st.dataframe(loyalty_display, use_container_width=True, hide_index=True)
+        
+        # Add insights
+        st.markdown("""
+        **Tier Characteristics:**
+        - 🥇 **Platinum**: Top 10%, ~35% of revenue
+        - 🥈 **Gold**: Middle 30%, growth potential
+        - 🥉 **Silver**: Base 60%, engagement focus
+        """)
+        
+except FileNotFoundError:
+    st.info("💡 Customer loyalty data not available. This would show Platinum/Gold/Silver tier distribution.")
+
+# -------------------------------
+# 1️⃣3️⃣ Footer / Export
 # -------------------------------
 st.markdown("---")
-with st.expander("Export filtered dataset"):
+with st.expander("📥 Export Filtered Dataset"):
     st.download_button("Download CSV", data=df_filtered.to_csv(index=False).encode('utf-8'),
-                       file_name="bluemart_filtered_sample.csv", mime="text/csv")
+                       file_name="bluemart_filtered_data.csv", mime="text/csv")
 
-st.markdown("Built for portfolio: BlueMart — 2025 • Author: Amir")
+st.markdown("""
+<div style='text-align: center; color: #6b7280; font-size: 12px; margin-top: 20px;'>
+    <strong>BlueMart Retail Analytics Dashboard</strong> • 2025 • Built with ❤️ by Amir<br>
+    <em>Data-driven insights for omnichannel retail excellence</em>
+</div>
+""", unsafe_allow_html=True)
