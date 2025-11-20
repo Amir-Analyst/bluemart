@@ -1,0 +1,33 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Source code
+*.py text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# Scripts
+*.sh text eol=lf
+*.ps1 text eol=crlf
+
+# Data files - treat as binary to avoid Git corruption
+*.csv binary
+*.parquet binary
+*.pkl binary
+
+# Images
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg text
+
+# Archives
+*.zip binary
+*.tar binary
+*.gz binary
