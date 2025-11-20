@@ -1,6 +1,8 @@
 <div align="center">
 
-<![BlueMart Logo](assets/logo.png)style="width:180px;">
+<div align="center">
+    <img src="assets/logo.png" width="300">
+</div>
 
 # BlueMart Retail LLC — 2025 Analytics Project
 
