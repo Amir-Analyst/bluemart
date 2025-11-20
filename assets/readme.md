@@ -3,7 +3,7 @@
 ### Technology Stack
 
 - **Data Generation**: Python, Pandas, NumPy
-- **Data Processing**: Chunked processing for memory optimization (11.4M records)
+- **Data Processing**: Chunked processing for memory optimization
 - **Visualization**: Streamlit, Plotly
 - **Analytics**: Statistical analysis, trend identification
 
@@ -15,35 +15,21 @@ bluemart/
 ├── requirements.txt          # Dependencies
 ├── app.py                    # Streamlit Dashboard
 ├── scripts/
-│   ├── generate_data.py      # Synthetic data generation with basket logic
+│   ├── generate_data.py      # Synthetic data generation (5000 SKUs)
 │   ├── process_data.py       # Data processing pipeline
-│   └── fix_sales_csv.py      # Data cleanup utility
+│   └── extract_insights.py   # Insight extraction utility
 ├── data/
-│   ├── raw/                  # Generated raw CSVs (11.4M records)
+│   ├── raw/                  # Generated raw CSVs (11.2M records)
 │   └── processed/            # Optimized data for dashboard
 └── assets/                   # Visualizations and logo
 ```
 
 ### Key Features
 
-- ✅ **Realistic Data Generation**: 11.4M transactions with basket correlation logic
-- ✅ **Memory-Optimized Processing**: Chunked processing to handle large datasets
-- ✅ **Interactive Dashboard**: Real-time filtering and drill-down capabilities
-- ✅ **Scalable Architecture**: Modular design for easy extension
-
----
-
-## 📊 Dashboard Preview
-
-### Executive Overview
-![Dashboard Overview](assets/dashboard_overview.png)
-*Figure 8: Interactive Streamlit Dashboard - Executive View*
-
-### Features:
-- **Real-time KPI cards** with trend indicators
-- **Interactive filters** by date range, channel, category, and store
-- **Drill-down capabilities** from executive summary to SKU-level details
-- **Export functionality** for reports and presentations
+- Realistic data generation with 5,000 SKUs and 11.2M transactions
+- Memory-optimized processing using chunking
+- Interactive dashboard with real-time filtering
+- Scalable architecture for easy extension
 
 ---
 
@@ -67,7 +53,7 @@ pip install -r requirements.txt
 ### Usage
 
 ```bash
-# 1. Generate synthetic data (optional - data already included)
+# 1. Generate synthetic data
 python scripts/generate_data.py
 
 # 2. Process data for dashboard
@@ -83,11 +69,11 @@ The dashboard will be available at `http://localhost:8501`
 
 ## 📁 Deliverables
 
-- ✅ **Cleaned & annotated dataset** (all tables, 11.4M records)
-- ✅ **KPI tables & trend analysis**
-- ✅ **Interactive Streamlit dashboard** (stakeholder-ready)
-- ✅ **Insight report with actionable recommendations**
-- ✅ **Technical documentation** for reproducibility
+- Cleaned & annotated dataset (all tables, 11.2M records)
+- KPI tables & trend analysis
+- Interactive Streamlit dashboard
+- Insight report with actionable recommendations
+- Technical documentation for reproducibility
 
 ---
 
@@ -95,12 +81,10 @@ The dashboard will be available at `http://localhost:8501`
 
 This project demonstrates:
 
-- **Data Engineering**: Large-scale data generation and processing (11.4M records)
+- **Data Engineering**: Large-scale data generation and processing (11.2M records, 5,000 SKUs)
 - **Analytics**: KPI calculation, trend analysis, and insight extraction
-- **Visualization**: Executive dashboards and storytelling with data
+- **Visualization**: Executive dashboards and data storytelling
 - **Business Acumen**: Retail domain knowledge and strategic recommendations
 - **Technical Skills**: Python, Pandas, Streamlit, memory optimization
 
-Perfect for showcasing **end-to-end analytics capabilities** in portfolio presentations or hiring manager demonstrations.
-
----
+Perfect for showcasing end-to-end analytics capabilities in portfolio presentations.
