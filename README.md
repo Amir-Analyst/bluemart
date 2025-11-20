@@ -4,7 +4,7 @@
     <img src="assets/logo.png" width="300">
 </div>
 
-# BlueMart Retail LLC — 2025 Analytics Project
+# 2025 Business Analytics Project
 
 **Transforming Retail Through Data-Driven Insights**
 
