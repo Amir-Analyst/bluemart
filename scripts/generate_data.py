@@ -63,7 +63,7 @@ def generate_skus():
     }
     
     sku_records = []
-    for i, sku_id in enumerate(range(1001, 1201)):
+    for i, sku_id in enumerate(range(1001, 6001)):
         category = np.random.choice(categories)
         subcategory = np.random.choice(subcategories[category])
         
@@ -249,8 +249,8 @@ def generate_inventory(stores, sku_master):
     # Simplified inventory generation
     inventory_records = []
     for store_id in stores["store_id"]:
-        # Random 100 SKUs per store
-        store_skus = np.random.choice(sku_master["sku_id"], 100, replace=False)
+        # Random 1500 SKUs per store (increased from 100 for realistic omnichannel inventory)
+        store_skus = np.random.choice(sku_master["sku_id"], 1500, replace=False)
         for sku_id in store_skus:
             inventory_records.append({
                 "store_id": store_id,

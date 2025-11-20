@@ -78,7 +78,6 @@ def load_data():
         for chunk in pd.read_csv(
             config.FILE_DASHBOARD_DATA,
             dtype=dtype_spec,
-            parse_dates=['date'],
             chunksize=chunk_size
         ):
             chunks.append(chunk)

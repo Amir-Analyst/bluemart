@@ -44,19 +44,41 @@ def process_data():
         "count": 0
     }
     
-    chunk_size = 100000
+    chunk_size = 50000  # Reduced from 100,000 to prevent OOM
     print(f"   Processing sales data in chunks of {chunk_size}...")
     
     try:
         # Process Sales in Chunks
-        chunk_iter = pd.read_csv(config.FILE_SALES, chunksize=chunk_size)
+        # Optimization: Read only necessary columns and specify types
+        use_cols = ['date', 'store_id', 'sku_id', 'quantity', 'total_value', 'channel']
+        dtype_spec = {
+            'store_id': 'int32',
+            'sku_id': 'int32',
+            'quantity': 'int32',
+            'total_value': 'float32',
+            'channel': 'category'
+        }
+        
+        chunk_iter = pd.read_csv(
+            config.FILE_SALES, 
+            chunksize=chunk_size, 
+            usecols=use_cols, 
+            dtype=dtype_spec,
+            parse_dates=['date'] # Parse dates directly to avoid later conversion overhead
+        )
         
         for i, chunk in enumerate(chunk_iter):
+            # Data Cleaning & Type Enforcement not needed as much with dtype_spec, 
+            # but good to be safe on IDs if they were somehow NaN (though int32 would fail on NaN)
+            # If we have NaNs, read_csv with int32 might fail. 
+            # Safe approach: Let read_csv handle it, if it fails we might need Int32 (nullable)
+            # But generated data shouldn't have NaNs in IDs.
+            
             # Merge
             chunk = chunk.merge(skus, on='sku_id', how='left').merge(stores, on='store_id', how='left')
             
             # Feature Engineering
-            chunk['date'] = pd.to_datetime(chunk['date'], errors='coerce')
+            # Date is already parsed by read_csv
             # Drop rows with invalid dates
             chunk = chunk.dropna(subset=['date'])
             chunk['promo_name'] = chunk['date'].map(promo_lookup).fillna('No Promotion')
@@ -73,8 +95,11 @@ def process_data():
             
             # Partial Aggregation for Dashboard
             # Group by key dimensions to reduce size immediately
+            # OPTIMIZATION: Group by IDs only to avoid string overhead and Cartesian product issues
+            # We will merge names back at the very end.
             grouped_chunk = chunk.groupby(
-                ['date', 'month', 'year', 'store_id', 'store_name', 'category', 'channel', 'sku_id', 'sku_name']
+                ['month', 'year', 'store_id', 'category', 'channel', 'sku_id'],
+                observed=True # CRITICAL: Only group observed combinations, not all categoricals
             ).agg(
                 revenue=('revenue', 'sum'),
                 profit=('profit', 'sum'),
@@ -83,8 +108,46 @@ def process_data():
             
             partial_aggregates.append(grouped_chunk)
             
+            # OPTIMIZATION: Iterative Aggregation
+            # Instead of accumulating thousands of DataFrames in partial_aggregates,
+            # we merge them into a main accumulator every few chunks to keep memory usage low.
+            if len(partial_aggregates) >= 10:
+                print("   Compacting partial aggregates...")
+                temp_df = pd.concat(partial_aggregates)
+                
+                # Group again to reduce size
+                temp_df = temp_df.groupby(
+                    ['month', 'year', 'store_id', 'category', 'channel', 'sku_id'],
+                    observed=True
+                ).agg(
+                    revenue=('revenue', 'sum'),
+                    profit=('profit', 'sum'),
+                    quantity=('quantity', 'sum')
+                ).reset_index()
+                
+                # If we already have a main accumulator, merge with it
+                if 'dashboard_df' in locals():
+                    dashboard_df = pd.concat([dashboard_df, temp_df])
+                    dashboard_df = dashboard_df.groupby(
+                        ['month', 'year', 'store_id', 'category', 'channel', 'sku_id'],
+                        observed=True
+                    ).agg(
+                        revenue=('revenue', 'sum'),
+                        profit=('profit', 'sum'),
+                        quantity=('quantity', 'sum')
+                    ).reset_index()
+                else:
+                    dashboard_df = temp_df
+                
+                # Clear the list to free memory
+                partial_aggregates = []
+                import gc
+                gc.collect()
+            
             if (i + 1) % 5 == 0:
                 print(f"   Processed {i + 1} chunks...")
+                import gc
+                gc.collect()
                 
     except FileNotFoundError:
          print(f"Error: {config.FILE_SALES} not found.")
@@ -92,18 +155,41 @@ def process_data():
 
     # 4. Final Aggregation
     print("   Performing final aggregation...")
-    if not partial_aggregates:
+    
+    # Process any remaining chunks in partial_aggregates
+    if partial_aggregates:
+        temp_df = pd.concat(partial_aggregates)
+        if 'dashboard_df' in locals():
+            dashboard_df = pd.concat([dashboard_df, temp_df])
+        else:
+            dashboard_df = temp_df
+            
+    if 'dashboard_df' not in locals() or dashboard_df.empty:
         print("No data processed.")
         return
 
-    full_df = pd.concat(partial_aggregates)
-    dashboard_df = full_df.groupby(
-        ['date', 'month', 'year', 'store_id', 'store_name', 'category', 'channel', 'sku_id', 'sku_name']
+    # Final Groupby to ensure uniqueness
+    dashboard_df = dashboard_df.groupby(
+        ['month', 'year', 'store_id', 'category', 'channel', 'sku_id'],
+        observed=True
     ).agg(
         revenue=('revenue', 'sum'),
         profit=('profit', 'sum'),
         quantity=('quantity', 'sum')
     ).reset_index()
+
+    # Merge names back
+    print("   Merging names back...")
+    # We need to reload masters briefly or keep them in memory (they are small)
+    # skus and stores are already in memory from start of script
+    dashboard_df = dashboard_df.merge(skus[['sku_id', 'sku_name']], on='sku_id', how='left')
+    dashboard_df = dashboard_df.merge(stores[['store_id', 'store_name']], on='store_id', how='left')
+
+    # DEBUG: Print monthly revenue to verify Ramadan (April) sales
+    print("\n   [DEBUG] Monthly Revenue Check:")
+    monthly_check = dashboard_df.groupby('month')['revenue'].sum().sort_values(ascending=False)
+    print(monthly_check)
+    print("   -----------------------------\n")
     
     # 5. Save Summary Metrics
     print("   Calculating final global metrics...")
