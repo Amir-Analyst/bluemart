@@ -43,6 +43,9 @@ env/
 .env.local
 
 # Large data files (>25MB - GitHub limit)
+bluemart/data/raw/bm_sales.csv
+bluemart/data/processed/sales_dashboard_data.csv
+# Legacy paths (kept for reference)
 data/raw/bm_sales.csv
 data/processed/sales_dashboard_data.csv
 

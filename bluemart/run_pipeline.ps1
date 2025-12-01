@@ -1,5 +1,8 @@
 # BlueMart Data Pipeline Execution Script
 
+# Ensure we are running from the script's directory so relative paths work
+Set-Location $PSScriptRoot
+
 Write-Host "Starting BlueMart Data Pipeline..." -ForegroundColor Cyan
 
 # 1. Generate Data
