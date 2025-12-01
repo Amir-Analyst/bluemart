@@ -62,7 +62,7 @@ Build a KPI-driven analytics framework to provide visibility into sales, invento
 
 ### Revenue Distribution
 
-![Channel Distribution](assets/channel_distribution.png)
+![Channel Distribution](bluemart/assets/channel_distribution.png)
 
 ### Key Insights
 - Physical stores remain the core revenue driver at 50%
@@ -116,7 +116,7 @@ Build a KPI-driven analytics framework to provide visibility into sales, invento
 
 ### Monthly Revenue Trends
 
-![Monthly Trends](assets/monthly_trends.png)
+![Monthly Trends](bluemart/assets/monthly_trends.png)
 
 ### Top Revenue Months
 
@@ -142,7 +142,7 @@ Build a KPI-driven analytics framework to provide visibility into sales, invento
 
 ### Loyalty Segmentation
 
-![Loyalty Segments](assets/loyalty_segments.png)
+![Loyalty Segments](bluemart/assets/loyalty_segments.png)
 
 | Tier | Customer % | Strategic Focus |
 |------|------------|-----------------|
@@ -236,7 +236,7 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 ## 👤 Author
 
-**Amir Khan**  Data Analyst   
+**Amir Khan** | Data Analyst   
 **Let's Connect**:
 *   💼 [LinkedIn](https://linkedin.com/in/amir-khan-hussain)
 *   💻 [Portfolio](https://amir-analyst.github.io)
