@@ -115,13 +115,32 @@ category_filter = st.sidebar.multiselect("Select Category(ies)", options=df['cat
 channel_filter = st.sidebar.multiselect("Select Channel(s)", options=df['channel'].unique(), default=df['channel'].unique())
 month_filter = st.sidebar.multiselect("Select Month(s)", options=sorted(df['month'].unique()), default=sorted(df['month'].unique()))
 
-# Apply filters
-df_filtered = df[
-    (df['store_id'].isin(store_filter)) &
-    (df['category'].isin(category_filter)) &
-    (df['channel'].isin(channel_filter)) &
-    (df['month'].isin(month_filter))
-]
+# Apply filters using query for better memory efficiency
+# Build query string dynamically based on selected filters
+filter_conditions = []
+
+if len(store_filter) > 0 and len(store_filter) < len(df['store_id'].unique()):
+    store_list = [f"'{s}'" for s in store_filter]
+    filter_conditions.append(f"store_id in [{', '.join(store_list)}]")
+
+if len(category_filter) > 0 and len(category_filter) < len(df['category'].unique()):
+    cat_list = [f"'{c}'" for c in category_filter]
+    filter_conditions.append(f"category in [{', '.join(cat_list)}]")
+
+if len(channel_filter) > 0 and len(channel_filter) < len(df['channel'].unique()):
+    chan_list = [f"'{ch}'" for ch in channel_filter]
+    filter_conditions.append(f"channel in [{', '.join(chan_list)}]")
+
+if len(month_filter) > 0 and len(month_filter) < len(df['month'].unique()):
+    month_list = [f"'{m}'" for m in month_filter]
+    filter_conditions.append(f"month in [{', '.join(month_list)}]")
+
+# Apply query if any filters are active, otherwise use full dataset
+if filter_conditions:
+    query_str = ' and '.join(filter_conditions)
+    df_filtered = df.query(query_str)
+else:
+    df_filtered = df
 
 if df_filtered.shape[0] == 0:
     st.warning("No data matches the selected filters. Try widening filters or date range.")
